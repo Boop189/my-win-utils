@@ -9,14 +9,14 @@ typedef unsigned short uint;
 //May be expanded upon in a commandline utility.
 
 
-class Writer {
+class ReadWrite {
 public:
 	bool WriteProcMemory(DWORD AddressToWriteTo, int InsertionValue, LPCSTR WindowName);
 	bool ReadProcMemory(DWORD AddressToReadFrom, LPCSTR WindowName);
 private:
 };
 
-bool Writer::ReadProcMemory(DWORD addressToReadFrom, LPCSTR WindowName) {
+bool ReadWrite::ReadProcMemory(DWORD addressToReadFrom, LPCSTR WindowName) {
 	HWND handleToWindow = FindWindowA(NULL, WindowName);
 	if (handleToWindow == NULL) {
 		cerr << "Error --- Could not find window: " << GetLastErrorAsString() << endl;
@@ -44,7 +44,7 @@ bool Writer::ReadProcMemory(DWORD addressToReadFrom, LPCSTR WindowName) {
 	return true;
 }
 
-bool Writer::WriteProcMemory(DWORD AddressToWriteTo, int InsertionValue, LPCSTR WindowName) {
+bool ReadWrite::WriteProcMemory(DWORD AddressToWriteTo, int InsertionValue, LPCSTR WindowName) {
 	HWND handleToWindow = FindWindowA(NULL, WindowName);
 		if (handleToWindow == NULL) {
 			cerr << "Error --- Could not find window: " << GetLastErrorAsString() << endl;
