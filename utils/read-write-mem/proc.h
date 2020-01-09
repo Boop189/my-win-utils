@@ -1,16 +1,21 @@
 #pragma once
 #include <iostream>
 #include <Windows.h>
+#include <TlHelp32.h>
 #include "getlast_error.h"
+
+#define _CRT_SECURE_NO_WARNINGS
 
 using namespace std;
 typedef unsigned short uint;
 
-//A set of functions for working with processes - TO BE expaneded upon.
+//A set of functions for working with processes and reverse engineering
 
 namespace PROCESS_ACTIONS {
 	class ReadWrite {
 	public:
+		DWORD getProcessID(LPCSTR procName);
+		DWORD codeCaveApplication(LPCSTR procName);
 		MEMORY_BASIC_INFORMATION* _QueryProcessInfo_(LPCSTR windowProcessName, DWORD addressToQuery);
 		bool _WriteProcMemory_(DWORD AddressToWriteTo, int InsertionValue, LPCSTR WindowName);
 		int _ReadProcMemory_(DWORD AddressToReadFrom, LPCSTR WindowName);
@@ -33,7 +38,7 @@ namespace PROCESS_ACTIONS {
 			//Query process using virtual query
 			VirtualQueryEx(toProc, (void*)addressToQuery, &mbi, sizeof(mbi));
 
-	
+
 			printf("====== PROCESS INFO =====\n");
 			printf("Process name: %s\n\n", windowProcesName);
 			printf("Base address: %p\n", mbi.BaseAddress);
@@ -49,8 +54,8 @@ namespace PROCESS_ACTIONS {
 			return &mbi;
 		}
 	}
-	
-	//Simply write values into locations in memory
+
+	//write values into locations in memory
 	int ReadWrite::_ReadProcMemory_(DWORD addressToReadFrom, LPCSTR WindowName) {
 		HWND handleToWindow = FindWindowA(NULL, WindowName);
 		if (handleToWindow == NULL) {
@@ -106,4 +111,47 @@ namespace PROCESS_ACTIONS {
 		}
 		return true;
 	}
+
+	DWORD ReadWrite::codeCaveApplication(LPCSTR processName) {
+		return 0x32;
+	}
+
+
+	DWORD ReadWrite::getProcessID(LPCSTR processName) {
+		//Take a snapshot of all processes in system
+		DWORD processID;
+		PROCESSENTRY32W PE;
+		std::string retStr;
+		HANDLE snapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+
+		//Set szie of process entry;
+		PE.dwSize = sizeof(PROCESSENTRY32);
+		//We need to convert the WCHAR* / wchar_t (utf-16) to a std::string (utf-8) --> Windows32 API native encoding is UTF-16
+
+		//Retrieves information about first process captured by snapshot(CreateToolhelp32SnapShot)
+		if (Process32First(snapShot, &PE)) {
+			//get the size of the string including the null character (-1 FLAG)
+			int sizeRequired = WideCharToMultiByte(CP_UTF8, 0, PE.szExeFile, -1, NULL, 0, NULL, NULL);
+			while (Process32Next(snapShot, &PE) != 0) {
+				std::vector<char> utf8String(sizeRequired);
+				int bytesCinverted = WideCharToMultiByte(CP_UTF8, 0, PE.szExeFile, -1, &utf8String[0], utf8String.size(), NULL, NULL);
+				retStr = &utf8String[0];
+
+				//Convert a std::string to const char*
+				const char* c = retStr.c_str();
+				//cout << c << '\n';
+
+				if (strcmp(processName, c) == 0) {
+					cout << "Process name: " << c << endl;
+					cout << "Process ID: " << PE.th32ProcessID << endl;;
+					break;
+				}
+			}
+		}
+		CloseHandle(snapShot);
+		return PE.th32ProcessID;
+	}
 }
+
+
+
