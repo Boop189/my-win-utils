@@ -2,6 +2,8 @@
 #include <iostream>
 #include <Windows.h>
 #include <TlHelp32.h>
+#include <winternl.h>
+
 #include "getlast_error.h"
 
 #define _CRT_SECURE_NO_WARNINGS
@@ -12,17 +14,19 @@ typedef unsigned short uint;
 //A set of functions for working with processes and reverse engineering
 
 namespace PROCESS_ACTIONS {
-	class ReadWrite {
+	template<class typeNameA>
+	class ProcActions {
 	public:
-		DWORD getProcessID(LPCSTR procName);
-		DWORD codeCaveApplication(LPCSTR procName);
-		MEMORY_BASIC_INFORMATION* _QueryProcessInfo_(LPCSTR windowProcessName, DWORD addressToQuery);
+		DWORD getProcessIDbyName(LPCSTR procName);
+		MEMORY_BASIC_INFORMATION* _QueryProcessInfo_(LPCSTR windowProcessName, DWORD addressToQuery = NULL);
 		bool _WriteProcMemory_(DWORD AddressToWriteTo, int InsertionValue, LPCSTR WindowName);
 		int _ReadProcMemory_(DWORD AddressToReadFrom, LPCSTR WindowName);
 	private:
 	};
 
-	MEMORY_BASIC_INFORMATION* ReadWrite::_QueryProcessInfo_(LPCSTR windowProcesName, DWORD addressToQuery) {
+	//Query process information
+	template<class typeNameA>
+	MEMORY_BASIC_INFORMATION* ProcActions<typename typeNameA>::_QueryProcessInfo_(LPCSTR windowProcesName, DWORD addressToQuery) {
 		DWORD ProcessID;
 		MEMORY_BASIC_INFORMATION mbi;
 
@@ -55,8 +59,9 @@ namespace PROCESS_ACTIONS {
 		}
 	}
 
-	//write values into locations in memory
-	int ReadWrite::_ReadProcMemory_(DWORD addressToReadFrom, LPCSTR WindowName) {
+	//Read values from memory
+	template<class typeNameA>
+	int ProcActions<typename typeNameA>::_ReadProcMemory_(DWORD addressToReadFrom, LPCSTR WindowName) {
 		HWND handleToWindow = FindWindowA(NULL, WindowName);
 		if (handleToWindow == NULL) {
 			cerr << "Error --- Could not find window: " << GetLastErrorAsString() << endl;
@@ -84,8 +89,9 @@ namespace PROCESS_ACTIONS {
 		}
 	}
 
-	//Read values from locations in memory
-	bool ReadWrite::_WriteProcMemory_(DWORD AddressToWriteTo, int InsertionValue, LPCSTR WindowName) {
+	//Write values to memory
+	template<class typeNameA>
+	bool ProcActions<typename typeNameA>::_WriteProcMemory_(DWORD AddressToWriteTo, int InsertionValue, LPCSTR WindowName) {
 		HWND handleToWindow = FindWindowA(NULL, WindowName);
 		if (handleToWindow == NULL) {
 			cerr << "Error --- Could not find window: " << GetLastErrorAsString() << endl;
@@ -111,23 +117,24 @@ namespace PROCESS_ACTIONS {
 		}
 		return true;
 	}
-
-	DWORD ReadWrite::codeCaveApplication(LPCSTR processName) {
-		return 0x32;
-	}
-
-
-	DWORD ReadWrite::getProcessID(LPCSTR processName) {
+	
+	//get the process ID of a process by name not handle
+	template<class typeNameA>
+	DWORD ProcActions<typename typeNameA>::getProcessIDbyName(LPCSTR processName) {
 		//Take a snapshot of all processes in system
 		DWORD processID;
 		PROCESSENTRY32W PE;
 		std::string retStr;
 		HANDLE snapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+		if (snapShot == INVALID_HANDLE_VALUE) {
+			cerr << "Error: " << GetLastErrorAsString();
+		}
 
 		//Set szie of process entry;
 		PE.dwSize = sizeof(PROCESSENTRY32);
-		//We need to convert the WCHAR* / wchar_t (utf-16) to a std::string (utf-8) --> Windows32 API native encoding is UTF-16
 
+		//We need to convert the WCHAR* / wchar_t (utf-16) to a std::string (utf-8) --> Windows32 API native encoding is UTF-16
+		
 		//Retrieves information about first process captured by snapshot(CreateToolhelp32SnapShot)
 		if (Process32First(snapShot, &PE)) {
 			//get the size of the string including the null character (-1 FLAG)
@@ -148,10 +155,12 @@ namespace PROCESS_ACTIONS {
 				}
 			}
 		}
-		CloseHandle(snapShot);
+		if (snapShot != 0) {
+			CloseHandle(snapShot);
+		}
 		return PE.th32ProcessID;
 	}
 }
-
+		
 
 
