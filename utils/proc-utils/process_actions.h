@@ -12,6 +12,7 @@ using namespace std;
 typedef unsigned short uint;
 
 //A set of functions for working with processes and reverse engineering
+//Todo: Add virtual protect function to modify pages
 
 namespace PROCESS_ACTIONS {
 	template<class typeNameA>
