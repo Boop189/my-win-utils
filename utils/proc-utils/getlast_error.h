@@ -3,6 +3,7 @@
 #include <iostream>
 #include <Windows.h>
 
+//Jamin grey
 std::string GetLastErrorAsString()
 {
 	//Get the error message, if any.
