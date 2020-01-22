@@ -12,7 +12,6 @@ using namespace std;
 typedef unsigned short uint;
 
 //A set of functions for working with processes and reverse engineering
-//Todo: Add virtual protect function to modify pages
 
 namespace PROCESS_ACTIONS {
 	template<class typeNameA>
@@ -108,7 +107,7 @@ namespace PROCESS_ACTIONS {
 			else {
 				bool write = WriteProcessMemory(hndlToOpenProc, (LPVOID)AddressToWriteTo, &InsertionValue, sizeof(InsertionValue), 0);
 				if (write == true) {
-					//printf("Successfully wrote Value: %d at Location: %p\n", InsertionValue, (void*)AddressToWriteTo);
+					printf("Successfully wrote Value: %d at Location: %p\n", InsertionValue, (void*)AddressToWriteTo);
 				}
 				else {
 					cerr << "Failed to write memory." << GetLastErrorAsString() << endl;
@@ -134,14 +133,16 @@ namespace PROCESS_ACTIONS {
 		//Set szie of process entry;
 		PE.dwSize = sizeof(PROCESSENTRY32);
 
-		//We need to convert the WCHAR* / wchar_t (utf-16) to a std::string (utf-8) --> Windows32 API native encoding is UTF-16
-		
 		//Retrieves information about first process captured by snapshot(CreateToolhelp32SnapShot)
 		if (Process32First(snapShot, &PE)) {
 			//get the size of the string including the null character (-1 FLAG)
 			int sizeRequired = WideCharToMultiByte(CP_UTF8, 0, PE.szExeFile, -1, NULL, 0, NULL, NULL);
 			while (Process32Next(snapShot, &PE) != 0) {
 				std::vector<char> utf8String(sizeRequired);
+				/**
+				Because Win32 API native encoding-WCHAR is UTF-16 and strcmp receives a CHAR, which must be UTF-8 encoded we
+				use the WideCharToMultiByte function.
+				**/
 				int bytesCinverted = WideCharToMultiByte(CP_UTF8, 0, PE.szExeFile, -1, &utf8String[0], utf8String.size(), NULL, NULL);
 				retStr = &utf8String[0];
 
