@@ -1,2 +1,2 @@
-# my-winRE-utils
-A handful of utlis I can use for RE/MA and analysis
+# winRE-utils
+Utilities used for reverse engineering windows PEs 
