@@ -53,7 +53,8 @@ namespace PROCESS_ACTIONS {
 			printf("State: 0x%08x\n", mbi.State);
 			printf("Protect: 0x%08x\n", mbi.Protect);
 			printf("Type: 0x%08x\n", mbi.Type);
-
+			
+			//Get last error and close handle
 			std::cout << GetLastErrorAsString();
 			CloseHandle(toProc);
 			return &mbi;
