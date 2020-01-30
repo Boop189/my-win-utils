@@ -113,12 +113,12 @@ namespace PROCESS_ACTIONS {
 		DWORD threadProcessID = GetWindowThreadProcessId(handleToWindow, &procID);
 		HANDLE hndlToOpenProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, procID);
 
-		//Allocate memory in the remote processes address space and make query to the updated protection
+		//Allocate memory in the remote processes address space (1 page) and make query to the updated protection 
 		LPVOID lpbase = VirtualAllocEx(hndlToOpenProc, NULL, 4096, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 		VirtualQueryEx(hndlToOpenProc, lpbase, &mbi, sizeof(mbi)); 
 		printf("Old protection: 0x%08x\n", mbi.Protect);
 
-		//Modify region protection
+		//change protection on pages in processes virtual address space
 		if (VirtualProtectEx(hndlToOpenProc, lpbase, nBytes, DESIRED_PROTECTION, &oldProtect) != NULL) {
 			VirtualQueryEx(hndlToOpenProc, lpbase, &mbi, sizeof(mbi));
 			printf("Updated Protection at : 0x%08x : Updated protection : 0x%08x", lpbase, mbi.Protect);
