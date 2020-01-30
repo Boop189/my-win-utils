@@ -11,8 +11,6 @@
 using namespace std;
 typedef unsigned short uint;
 
-//windowProcessName is the string as specified in SetWindowText, the title of the window. 
-
 namespace PROCESS_ACTIONS {
 	template<class typeNameA>
 	class ProcActions {
@@ -76,26 +74,31 @@ namespace PROCESS_ACTIONS {
 		else {
 			DWORD processID;
 			int readBuffer = 0;
+			
+			//get the thread PID assoicated with the window
 			DWORD threadProcessID = GetWindowThreadProcessId(handleToWindow, &processID);
+			
+			//get a handle to the process with all access rights
 			HANDLE hndlToOpenProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
 			if (hndlToOpenProc == NULL) {
 				cerr << "Error -- Could not Open this process" << GetLastErrorAsString() << endl;
 			}
 			else {
+				//Read an integer value from a location in memory
 				bool read = ReadProcessMemory(hndlToOpenProc, (LPVOID)addressToReadFrom, &readBuffer, sizeof(readBuffer), 0);
 				if (read == true) {
 					printf("Successfully read value: %d at location: %p\n", readBuffer, (void*)addressToReadFrom);
 				}
 				else {
 					cerr << "Failed to write memory." << GetLastErrorAsString() << endl;
-					return false;
+					return 0;
 				}
 			}
 			return readBuffer;
 		}
 	}
 
-	//Change the protection of a process at an arbitrary location within the procs address space
+	//Change the protection of a process at an arbitrary location within the process address space
 	template<class typeNameA>
 	void* ProcActions<typename typeNameA>::_ChageProtection_(LPCSTR windowProcessName, const int DESIRED_PROTECTION, int nBytes) {
 		DWORD procID;
@@ -128,7 +131,7 @@ namespace PROCESS_ACTIONS {
 		}
 	}
 	
-	//Write values to memory
+	//Write an integer to a location in memory
 	template<class typeNameA>
 	bool ProcActions<typename typeNameA>::_WriteProcMemory_(DWORD AddressToWriteTo, int InsertionValue, LPCSTR windowProcessName) {
 		//Get a handle to the window
@@ -150,6 +153,7 @@ namespace PROCESS_ACTIONS {
 				return false;
 			}
 			else {
+				//Write an integer to an address in memory
 				bool write = WriteProcessMemory(hndlToOpenProc, (LPVOID)AddressToWriteTo, &InsertionValue, sizeof(InsertionValue), 0);
 				if (write == true) {
 					printf("Successfully wrote Value: %d at Location: %p\n", InsertionValue, (void*)AddressToWriteTo);
@@ -201,6 +205,7 @@ namespace PROCESS_ACTIONS {
 				}
 			}
 		}
+		//close handle and return the pid
 		if (snapShot != 0) {
 			CloseHandle(snapShot);
 		}
