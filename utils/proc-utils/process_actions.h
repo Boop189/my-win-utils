@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <TlHelp32.h>
 #include <winternl.h>
+#include <vector>
 
 #include "getlast_error.h"
 
@@ -15,7 +16,7 @@ namespace PROCESS_ACTIONS {
 	template<class typeNameA>
 	class ProcActions {
 	public:
-		DWORD getProcessIDbyName(LPCSTR windowProcessName);
+		DWORD getProcessIDbyName(LPCSTR processName);
 		void* _ChageProtection_(LPCSTR windowProcessName, const int DESIRED_PROTECTION, int nBytes);
 		MEMORY_BASIC_INFORMATION* _QueryProcessInfo_(LPCSTR windowProcessName, DWORD addressToQuery, HANDLE exHndl = 0);
 		bool _WriteProcMemory_(DWORD AddressToWriteTo, int InsertionValue, LPCSTR WindowName);
@@ -53,7 +54,7 @@ namespace PROCESS_ACTIONS {
 			printf("State: 0x%08x\n", mbi.State);
 			printf("Protect: 0x%08x\n", mbi.Protect);
 			printf("Type: 0x%08x\n", mbi.Type);
-			
+
 			//Get last error and close handle
 			std::cout << GetLastErrorAsString();
 			CloseHandle(toProc);
@@ -75,10 +76,10 @@ namespace PROCESS_ACTIONS {
 		else {
 			DWORD processID;
 			int readBuffer = 0;
-			
+
 			//get the thread PID assoicated with the window
 			DWORD threadProcessID = GetWindowThreadProcessId(handleToWindow, &processID);
-			
+
 			//get a handle to the process with all access rights
 			HANDLE hndlToOpenProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
 			if (hndlToOpenProc == NULL) {
@@ -116,7 +117,7 @@ namespace PROCESS_ACTIONS {
 
 		//Allocate memory in the remote processes address space (1 page) and make query to the updated protection 
 		LPVOID lpbase = VirtualAllocEx(hndlToOpenProc, NULL, 4096, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-		VirtualQueryEx(hndlToOpenProc, lpbase, &mbi, sizeof(mbi)); 
+		VirtualQueryEx(hndlToOpenProc, lpbase, &mbi, sizeof(mbi));
 		printf("Old protection: 0x%08x\n", mbi.Protect);
 
 		//change protection on pages in processes virtual address space
@@ -131,7 +132,7 @@ namespace PROCESS_ACTIONS {
 			exit(EXIT_FAILURE);
 		}
 	}
-	
+
 	//Write an integer to a location in memory
 	template<class typeNameA>
 	bool ProcActions<typename typeNameA>::_WriteProcMemory_(DWORD AddressToWriteTo, int InsertionValue, LPCSTR windowProcessName) {
@@ -143,10 +144,10 @@ namespace PROCESS_ACTIONS {
 		}
 		else {
 			DWORD processID;
-			
+
 			//get the threadID of the process
 			DWORD threadProcessID = GetWindowThreadProcessId(handleToWindow, &processID);
-			
+
 			//Open handle to the process
 			HANDLE hndlToOpenProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
 			if (hndlToOpenProc == NULL) {
@@ -168,10 +169,11 @@ namespace PROCESS_ACTIONS {
 		}
 		return true;
 	}
-	
+
 	//get the PID by name
 	template<class typeNameA>
-	DWORD ProcActions<typename typeNameA>::getProcessIDbyName(LPCSTR windowProcessName) {
+	DWORD ProcActions<typename typeNameA>::getProcessIDbyName(LPCSTR processName) {
+		bool fFlag = false;
 		DWORD processID;
 		PROCESSENTRY32W PE;
 		std::string retStr;
@@ -198,21 +200,23 @@ namespace PROCESS_ACTIONS {
 
 				//Convert a std::string to const char*
 				const char* c = retStr.c_str();
-	
-				if (strcmp(windowProcessName, c) == 0) {
+
+				//Compare each entity in the process list
+				if (strcmp(processName, c) == 0) {
+					fFlag = true;
 					cout << "Process name: " << c << endl;
-					cout << "Process ID: " << PE.th32ProcessID << endl;;
-					break;
+					cout << "Process ID: ";
+					return PE.th32ProcessID;
 				}
+			}
+			if (fFlag == false) {
+				cerr << "Error: could not find process - ";
+				return 0;
 			}
 		}
 		//close handle and return the pid
 		if (snapShot != 0) {
 			CloseHandle(snapShot);
 		}
-		return PE.th32ProcessID;
 	}
 }
-		
-
-
