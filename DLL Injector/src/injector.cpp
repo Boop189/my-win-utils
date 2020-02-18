@@ -35,22 +35,22 @@ int main(int argc, char* argv[])
 			return -1;
 		}
 		else {
-			LPVOID pDLLPath = VirtualAllocEx(hProcess, 0, strlen(d) + 1, MEM_COMMIT, PAGE_READWRITE);
-			if (pDLLPath == NULL) {
+			LPVOID dllP = VirtualAllocEx(hProcess, 0, strlen(d) + 1, MEM_COMMIT, PAGE_READWRITE);
+			if (dllP == NULL) {
 				cerr << "Failed to allocate memory in process. " << GetLastErrorAsString() << endl;
 				return -1;
 			}
 			else {
-				WriteProcessMemory(hProcess, pDLLPath, (LPVOID)d, strlen(d) + 1, 0);
-				HANDLE hLoadThread = CreateRemoteThread(hProcess, 0, 0, (LPTHREAD_START_ROUTINE)GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA"), pDLLPath, 0, 0);
-				DWORD retVal = WaitForSingleObject(hLoadThread, INFINITE);
-				if (hLoadThread == NULL | retVal == WAIT_FAILED ) {
+				WriteProcessMemory(hProcess, dllP, (LPVOID)d, strlen(d) + 1, 0);
+				HANDLE handleLthd = CreateRemoteThread(hProcess, 0, 0, (LPTHREAD_START_ROUTINE)GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA"), dllP, 0, 0);
+				DWORD retVal = WaitForSingleObject(handleLthd, INFINITE);
+				if (handleLthd == NULL | retVal == WAIT_FAILED ) {
 					cerr << "Failed to create remote thread in process." << endl;
 					return -1;
 				}
-				std::cout << std::endl << "DLL path allocated at address: " << pDLLPath << std::endl;
+				std::cout << std::endl << "DLL path allocated at address: " << dllP << std::endl;
 				std::cin.get();
-				VirtualFreeEx(hProcess, pDLLPath, strlen(d) + 1, MEM_RELEASE);
+				VirtualFreeEx(hProcess, dllP, strlen(d) + 1, MEM_RELEASE);
 				return 0;
 			}
 		}
