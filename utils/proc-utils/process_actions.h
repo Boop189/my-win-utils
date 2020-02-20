@@ -86,7 +86,6 @@ namespace PROCESS_ACTIONS {
 				cerr << "Error -- Could not Open this process" << GetLastErrorAsString() << endl;
 			}
 			else {
-				//Read an integer value from a location in memory
 				bool read = ReadProcessMemory(hndlToOpenProc, (LPVOID)addressToReadFrom, &readBuffer, sizeof(readBuffer), 0);
 				if (read == true) {
 					printf("Successfully read value: %d at location: %p\n", readBuffer, (void*)addressToReadFrom);
