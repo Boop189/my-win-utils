@@ -19,7 +19,7 @@ namespace PROCESS_ACTIONS {
 		DWORD getProcessIDbyName(LPCSTR processName);
 		void* _ChageProtection_(LPCSTR windowProcessName, const int DESIRED_PROTECTION, int nBytes);
 		MEMORY_BASIC_INFORMATION* _QueryProcessInfo_(LPCSTR windowProcessName, DWORD addressToQuery, HANDLE exHndl = 0);
-		bool _WriteProcMemory_(DWORD AddressToWriteTo, int InsertionValue, LPCSTR WindowName);
+		bool _WriteProcMemory_(DWORD AddressToWriteTo, typeNameA InsertionValue, LPCSTR WindowName);
 		int _ReadProcMemory_(DWORD AddressToReadFrom, LPCSTR windowProcessName);
 	private:
 	};
@@ -63,7 +63,7 @@ namespace PROCESS_ACTIONS {
 	}
 
 
-	//Read values from memory
+	//Read from memory
 	template<class typeNameA>
 	int ProcActions<typename typeNameA>::_ReadProcMemory_(DWORD addressToReadFrom, LPCSTR windowProcessName) {
 
@@ -100,7 +100,6 @@ namespace PROCESS_ACTIONS {
 		}
 	}
 
-	//Change the protection of a process at an arbitrary location within the process address space
 	template<class typeNameA>
 	void* ProcActions<typename typeNameA>::_ChageProtection_(LPCSTR windowProcessName, const int DESIRED_PROTECTION, int nBytes) {
 		DWORD procID;
@@ -133,9 +132,9 @@ namespace PROCESS_ACTIONS {
 		}
 	}
 
-	//Write an integer to a location in memory
+
 	template<class typeNameA>
-	bool ProcActions<typename typeNameA>::_WriteProcMemory_(DWORD AddressToWriteTo, int InsertionValue, LPCSTR windowProcessName) {
+	bool ProcActions<typename typeNameA>::_WriteProcMemory_(DWORD AddressToWriteTo, typeNameA InsertionValue, LPCSTR windowProcessName) {
 		//Get a handle to the window
 		HWND handleToWindow = FindWindowA(NULL, windowProcessName);
 		if (handleToWindow == NULL) {
@@ -204,8 +203,8 @@ namespace PROCESS_ACTIONS {
 				//Compare each entity in the process list
 				if (strcmp(processName, c) == 0) {
 					fFlag = true;
-					cout << "Process name: " << c << endl;
-					cout << "Process ID: ";
+					//cout << "Process name: " << c << '\n';
+					//cout << "Process ID: " << PE.th32ProcessID << '\n';
 					return PE.th32ProcessID;
 				}
 			}

@@ -1,7 +1,6 @@
 #include <iostream>
 #include <Windows.h>
 #include <string>
-#include <regex>
 #include "process_actions.h"
 #include <shellapi.h>
 #include "Shlwapi.h"
