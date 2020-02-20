@@ -153,7 +153,6 @@ namespace PROCESS_ACTIONS {
 				return false;
 			}
 			else {
-				//Write an integer to an address in memory
 				bool write = WriteProcessMemory(hndlToOpenProc, (LPVOID)AddressToWriteTo, &InsertionValue, sizeof(InsertionValue), 0);
 				if (write == true) {
 					printf("Successfully wrote Value: %d at Location: %p\n", InsertionValue, (void*)AddressToWriteTo);
