@@ -15,6 +15,7 @@ int main(int argc, char* argv[])
 	std::string pname, dllpath;
 	PROCESS_ACTIONS::ProcActions<DWORD> obj;
 
+	//getline in case file path contains spaces
 	printf("Process name: "), std::cin >> pname, cin.ignore();
 	printf("DLL Path: "), std::getline(cin, dllpath);
 
