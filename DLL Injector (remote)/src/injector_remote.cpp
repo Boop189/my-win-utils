@@ -11,7 +11,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 using namespace std;
 
-//A simple dll example
+//A simple dll example, show case basic dll injector functionality
 
 void GetPayload() {
 	char* fBuffer = NULL;
