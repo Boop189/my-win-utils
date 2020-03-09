@@ -1,5 +1,5 @@
 # winRE-utils
-Utilities used for reverse engineering windows apps (Educational).  
+Utilities used for reverse engineering windows apps (Educational). File used on webserver as example.
 
 This repo contains two generic DLL injector examples.
 1. The first one is static. The user must specify the name of the process to be injected into and the path to the DLL on the system. 
