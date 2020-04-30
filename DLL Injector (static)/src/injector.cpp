@@ -8,12 +8,6 @@
 #pragma comment(lib, "Shlwapi.lib")
 #define _CRT_SECURE_NO_WARNINGS
 
-<<<<<<< HEAD
-//Simple DLL example
-//Load a DLL File into a specified process. 
-=======
-//Load a DLL File into a specified process. ..
->>>>>>> 69452903fd6e904a16002ec73037d800489350fa
 
 int main(int argc, char* argv[])
 {
