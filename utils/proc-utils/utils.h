@@ -13,24 +13,52 @@ using namespace std;
 typedef unsigned short uint;
 
 //Using templates because Meh
+
 namespace PROCESS_ACTIONS {
 	template<class typeNameA>
 	class ProcActions {
 	public:
 		DWORD getProcessIDbyName(LPCSTR processName);
 		void* _ChageProtection_(LPCSTR windowProcessName, const int DESIRED_PROTECTION, int nBytes);
-		void writeJump(DWORD* jumpStart, DWORD* addressOfnewFunction, HANDLE& toProcess);
-		void writeCall(DWORD* callLoc, DWORD* newFuncLoc, HANDLE &handleToProcess);
+		void overwriteJump(DWORD* jumpStart, DWORD* addressOfnewFunction, HANDLE& toProcess);
+		void overwriteCall(DWORD* callLoc, DWORD* newFuncLoc, HANDLE& handleToProcess);
 
 		MEMORY_BASIC_INFORMATION* _QueryProcessInfo_(LPCSTR windowProcessName, DWORD addressToQuery, HANDLE exHndl = 0);
 		bool _WriteProcMemory_(DWORD AddressToWriteTo, typeNameA InsertionValue, LPCSTR WindowName);
 		int _ReadProcMemory_(DWORD AddressToReadFrom, LPCSTR windowProcessName);
+		uintptr_t getModuleBaseAddress(DWORD processID, const wchar_t* moduleName);
 	private:
 	};
 
+	template<class typeNameA>
+	uintptr_t ProcActions<typeNameA>::getModuleBaseAddress(DWORD processID, const wchar_t* moduleName) {
+		uintptr_t moduleBase = 0;
+		HANDLE systemSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, processID);
+		if (systemSnap == INVALID_HANDLE_VALUE) {
+			cerr << "error: " << GetLastErrorAsString();
+		}
+		else {
+			MODULEENTRY32 modEntry;
+			modEntry.dwSize = sizeof(modEntry);
+			if (Module32First(systemSnap, &modEntry))
+			{
+				do
+				{
+					if (!_wcsicmp(modEntry.szModule,moduleName))
+					{
+						moduleBase = (DWORD)modEntry.modBaseAddr;
+						break;
+					}
+				} while (Module32Next(systemSnap, &modEntry));
+			}
+		}
+		CloseHandle(systemSnap);
+		return moduleBase;
+	}
+	
 	//Change program flow by changing jump loc
 	template<class typeNameA>
-	void ProcActions<typename typeNameA>::writeJump(DWORD* baseAddressOfJump, DWORD* addressOfnewJumpLocation, HANDLE& toProcess)
+	void ProcActions<typename typeNameA>::overwriteJump(DWORD* baseAddressOfJump, DWORD* addressOfnewJumpLocation, HANDLE& toProcess)
 	{
 		DWORD jmpLocation = (DWORD)(long)*baseAddressOfJump + 1;
 		cout << LPVOID(jmpLocation) << endl;
@@ -40,11 +68,14 @@ namespace PROCESS_ACTIONS {
 		if (WriteProcessMemory(toProcess, (LPVOID)jmpLocation, &offset, 4, NULL) == false) {
 			std::cerr << "could not write to proc" << GetLastErrorAsString();
 			return;
-		
+		}
+
 	}
+
+
 	//Change a function call to the address of another function, change the program flow.
 	template<class typeNameA>
-	void ProcActions<typename typeNameA>::writeCall(DWORD* baseAddressOfCall, DWORD* addressOfNewFunction, HANDLE& handleToProcess) {
+	void ProcActions<typename typeNameA>::overwriteCall(DWORD* baseAddressOfCall, DWORD* addressOfNewFunction, HANDLE& handleToProcess) {
 		
 		//Begin writing at the next byte after the call opcode 0xe8
 		DWORD writeLocation = (DWORD)(long)*baseAddressOfCall + 1;
