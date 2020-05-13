@@ -12,17 +12,58 @@
 using namespace std;
 typedef unsigned short uint;
 
+//Using templates because Meh
 namespace PROCESS_ACTIONS {
 	template<class typeNameA>
 	class ProcActions {
 	public:
 		DWORD getProcessIDbyName(LPCSTR processName);
 		void* _ChageProtection_(LPCSTR windowProcessName, const int DESIRED_PROTECTION, int nBytes);
+		void writeJump(DWORD* jumpStart, DWORD* addressOfnewFunction, HANDLE& toProcess);
+		void writeCall(DWORD* callLoc, DWORD* newFuncLoc, HANDLE &handleToProcess);
+
 		MEMORY_BASIC_INFORMATION* _QueryProcessInfo_(LPCSTR windowProcessName, DWORD addressToQuery, HANDLE exHndl = 0);
 		bool _WriteProcMemory_(DWORD AddressToWriteTo, typeNameA InsertionValue, LPCSTR WindowName);
 		int _ReadProcMemory_(DWORD AddressToReadFrom, LPCSTR windowProcessName);
 	private:
 	};
+
+	//Change program flow by changing jump loc
+	template<class typeNameA>
+	void ProcActions<typename typeNameA>::writeJump(DWORD* baseAddressOfJump, DWORD* addressOfnewJumpLocation, HANDLE& toProcess)
+	{
+		DWORD jmpLocation = (DWORD)(long)*baseAddressOfJump + 1;
+		cout << LPVOID(jmpLocation) << endl;
+
+		DWORD* offset = (DWORD*)(((unsigned)*addressOfnewJumpLocation) - ((unsigned)*baseAddressOfJump + 5));
+	
+		if (WriteProcessMemory(toProcess, (LPVOID)jmpLocation, &offset, 4, NULL) == false) {
+			std::cerr << "could not write to proc" << GetLastErrorAsString();
+			return;
+		
+	}
+	//Change a function call to the address of another function, change the program flow.
+	template<class typeNameA>
+	void ProcActions<typename typeNameA>::writeCall(DWORD* baseAddressOfCall, DWORD* addressOfNewFunction, HANDLE& handleToProcess) {
+		
+		//Begin writing at the next byte after the call opcode 0xe8
+		DWORD writeLocation = (DWORD)(long)*baseAddressOfCall + 1;
+		cout << LPVOID(writeLocation) << endl;
+
+		//The call is a relative offset starting at the address of the next instrucition directly after the call, the call instruction is 5 bytes in length.
+		DWORD* offset = (DWORD*)(((unsigned)*addressOfNewFunction) - ((unsigned)*baseAddressOfCall + 5));
+		cout << offset << endl;
+
+		//Write changes to memory
+		if (WriteProcessMemory(handleToProcess, (LPVOID)writeLocation, &offset , 4, NULL) == false) {
+			std::cerr << "could not write to proc" << GetLastErrorAsString();
+			return;
+		}
+		else {
+			printf("Wrote to address: %p\n", writeLocation);
+			return;
+		}
+	}
 
 	//Query process information
 	template<class typeNameA>
@@ -207,13 +248,14 @@ namespace PROCESS_ACTIONS {
 				}
 			}
 			if (fFlag == false) {
-				cerr << "Error: could not find process - ";
+				cerr << "Error: could not find process - \n";
 				return 0;
 			}
 		}
 		//close handle and return the pid
 		if (snapShot != 0) {
 			CloseHandle(snapShot);
+			return PE.th32ProcessID;
 		}
 	}
 }
