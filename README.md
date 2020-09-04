@@ -1,3 +1,3 @@
-# winRE-utils
-A handful of useful Utilities used for reverse engineering windows apps.
+# my-win-utils
+A handful of useful Utilities for picking apart applications in windows
 
